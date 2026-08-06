@@ -7,11 +7,13 @@ const int ANGLE_DOWN = 60;
 const int ANGLE_UP = 0;
 
 const unsigned long HOLD_MS = 5000UL;
+const unsigned long WARMUP_MS = 60000UL;
 
 Servo servo;
 bool isUp = false;
 int currentAngle = ANGLE_DOWN;
 unsigned long lastMotionMs = 0;
+unsigned long lastPrintMs = 0;
 
 void sweepTo(int target) {
   int step = (target > currentAngle) ? 2 : -2;
@@ -34,11 +36,30 @@ void setup() {
   currentAngle = ANGLE_DOWN;
   delay(1000);
   servo.detach();
+
+  Serial.println("warming up PIR, 60s");
+  unsigned long start = millis();
+  while (millis() - start < WARMUP_MS) {
+    if (millis() - lastPrintMs > 1000) {
+      lastPrintMs = millis();
+      Serial.print("pir=");
+      Serial.println(digitalRead(PIN_PIR));
+    }
+    delay(50);
+  }
   Serial.println("ready");
 }
 
 void loop() {
-  if (digitalRead(PIN_PIR) == HIGH) {
+  int pir = digitalRead(PIN_PIR);
+
+  if (millis() - lastPrintMs > 1000) {
+    lastPrintMs = millis();
+    Serial.print("pir=");
+    Serial.println(pir);
+  }
+
+  if (pir == HIGH) {
     lastMotionMs = millis();
     if (!isUp) {
       Serial.println("up");
