@@ -3,8 +3,8 @@
 const int PIN_SERVO = 18;
 const int PIN_PIR = 27;
 
-const int ANGLE_HOME = 60;   // zero / resting position - servo sits here at boot, mount your arm at this angle
-const int ANGLE_PUSH = 120;  // how far it travels from home - raise for more throw, lower for less
+const int ANGLE_HOME = 60;  
+const int ANGLE_PUSH = 120; 
 
 const unsigned long COOLDOWN_MS = 5000UL;
 
