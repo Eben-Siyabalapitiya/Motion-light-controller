@@ -3,22 +3,26 @@
 const int PIN_SERVO = 18;
 const int PIN_PIR = 27;
 
-const int ANGLE_HOME = 60;  
-const int ANGLE_PUSH = 120; 
+const int ANGLE_DOWN = 60;
+const int ANGLE_UP = 0;
 
-const unsigned long COOLDOWN_MS = 5000UL;
+const unsigned long HOLD_MS = 5000UL;
 
 Servo servo;
-unsigned long lastTriggerMs = 0;
+bool isUp = false;
+int currentAngle = ANGLE_DOWN;
+unsigned long lastMotionMs = 0;
 
-void sweepTo(int target, int from) {
-  int step = (target > from) ? 2 : -2;
-  for (int a = from; a != target; a += step) {
-    servo.write(a);
+void sweepTo(int target) {
+  int step = (target > currentAngle) ? 2 : -2;
+  while (abs(target - currentAngle) > 1) {
+    currentAngle += step;
+    servo.write(currentAngle);
     delay(12);
   }
-  servo.write(target);
-  delay(300);
+  currentAngle = target;
+  servo.write(currentAngle);
+  delay(200);
 }
 
 void setup() {
@@ -26,20 +30,30 @@ void setup() {
   pinMode(PIN_PIR, INPUT);
   servo.setPeriodHertz(50);
   servo.attach(PIN_SERVO, 500, 2400);
-  servo.write(ANGLE_HOME);
+  servo.write(ANGLE_DOWN);
+  currentAngle = ANGLE_DOWN;
   delay(1000);
   servo.detach();
-  Serial.println("ready - servo parked at home");
+  Serial.println("ready");
 }
 
 void loop() {
-  if (digitalRead(PIN_PIR) == HIGH && millis() - lastTriggerMs > COOLDOWN_MS) {
-    lastTriggerMs = millis();
-    Serial.println("motion");
-    servo.attach(PIN_SERVO, 500, 2400);
-    sweepTo(ANGLE_PUSH, ANGLE_HOME);
-    sweepTo(ANGLE_HOME, ANGLE_PUSH);
-    servo.detach();
+  if (digitalRead(PIN_PIR) == HIGH) {
+    lastMotionMs = millis();
+    if (!isUp) {
+      Serial.println("up");
+      servo.attach(PIN_SERVO, 500, 2400);
+      sweepTo(ANGLE_UP);
+      isUp = true;
+    }
   }
+
+  if (isUp && millis() - lastMotionMs > HOLD_MS) {
+    Serial.println("down");
+    sweepTo(ANGLE_DOWN);
+    servo.detach();
+    isUp = false;
+  }
+
   delay(50);
 }
