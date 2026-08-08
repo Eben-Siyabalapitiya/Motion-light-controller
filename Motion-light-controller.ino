@@ -32,104 +32,111 @@ const char PAGE[] PROGMEM = R"HTML(<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#191c1f">
-<title>Light switch</title>
+<meta name="theme-color" content="#000000">
+<title>Eben's Room Light</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#191c1f; --panel:#22262a; --raise:#282d32; --edge:#343a41;
-  --ink:#e2e6e9; --mute:#868e96; --amber:#f0a02c; --amber-soft:#f0a02c33;
-  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
-  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --bg:#000; --surface:#0b0c0e; --raise:#161719; --hi:#202225;
+  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+  --ink:#fafafa; --mute:#6e7378;
+  --amber:#ffb04a; --glow:rgba(255,176,74,.15);
+  --sans:"Geist",-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI",Inter,sans-serif;
+  --mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{
   background:var(--bg);color:var(--ink);font-family:var(--sans);
   min-height:100vh;display:flex;justify-content:center;
-  padding:28px 18px 44px;-webkit-font-smoothing:antialiased;
+  padding:40px 20px 56px;-webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
 }
-.wrap{width:100%;max-width:400px}
+.wrap{width:100%;max-width:392px}
 
-.top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px}
-.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.22em;
+.head{margin-bottom:26px}
+.title{font-size:23px;font-weight:600;letter-spacing:-.032em;line-height:1.1}
+.link{display:flex;align-items:center;gap:7px;margin-top:9px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--mute)}
-.link{display:flex;align-items:center;gap:6px;font-family:var(--mono);
-  font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
-.dot{width:6px;height:6px;border-radius:50%;background:#4e5661;transition:background .3s}
-.dot.live{background:#5ec97a}
+.dot{width:5px;height:5px;border-radius:50%;background:#33363a;transition:background .3s}
+.dot.live{background:#5ec97a;box-shadow:0 0 8px rgba(94,201,122,.55)}
 
 .stage{
-  background:var(--panel);border:1px solid var(--edge);border-radius:16px;
-  padding:30px 24px 24px;text-align:center;position:relative;overflow:hidden;
+  background:var(--surface);border:1px solid var(--line);border-radius:20px;
+  padding:34px 26px 26px;text-align:center;position:relative;overflow:hidden;
 }
-.halo{position:absolute;inset:0;opacity:0;transition:opacity .5s;
-  background:radial-gradient(circle at 50% 34%,var(--amber-soft),transparent 62%);
+.halo{position:absolute;inset:0;opacity:0;transition:opacity .6s ease;
+  background:radial-gradient(circle at 50% 33%,var(--glow),transparent 60%);
   pointer-events:none}
 .stage.on .halo{opacity:1}
+.stage::after{content:"";position:absolute;inset:0;border-radius:20px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);pointer-events:none}
 
-svg.plate{width:104px;height:auto;display:block;margin:0 auto 20px;position:relative}
-.pl-body{fill:var(--raise);stroke:var(--edge);stroke-width:1.5}
-.pl-slot{fill:#15181b}
-.pl-screw{fill:none;stroke:#454c54;stroke-width:1.6;stroke-linecap:round}
-.pl-lever{fill:#c6ccd2;transform-origin:70px 104px;transform:rotate(180deg);
-  transition:transform .42s cubic-bezier(.34,1.4,.5,1)}
-.stage.on .pl-lever{fill:#f4f6f7;transform:rotate(0deg)}
-.pl-arm{stroke:#5b636c;stroke-width:5;stroke-linecap:round;transform-origin:70px 104px;
-  transition:transform .42s cubic-bezier(.34,1.4,.5,1)}
-.stage.on .pl-arm{stroke:var(--amber);transform:rotate(-34deg)}
+svg.plate{width:110px;height:auto;display:block;margin:0 auto 24px;position:relative}
+.pl-body{fill:#111214;stroke:var(--line2);stroke-width:1.4}
+.pl-slot{fill:#000}
+.pl-screw{fill:none;stroke:#3a3d42;stroke-width:1.5;stroke-linecap:round}
+.pl-lever{fill:#8b9096;transform-origin:70px 104px;transform:rotate(180deg);
+  transition:transform .44s cubic-bezier(.34,1.42,.5,1),fill .44s}
+.stage.on .pl-lever{fill:#fff}
+.pl-arm{stroke:#3a3d42;stroke-width:5;stroke-linecap:round;transform-origin:70px 104px;
+  transition:transform .44s cubic-bezier(.34,1.42,.5,1),stroke .44s}
+.stage.on .pl-arm{stroke:var(--amber)}
 
-.state{font-size:26px;font-weight:600;letter-spacing:-.02em}
+.state{font-size:30px;font-weight:600;letter-spacing:-.035em;transition:color .4s}
 .stage.on .state{color:var(--amber)}
-.sub{margin-top:7px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+.sub{margin-top:9px;font-family:var(--mono);font-size:10px;letter-spacing:.17em;
   text-transform:uppercase;color:var(--mute);font-variant-numeric:tabular-nums}
 
-.act{width:100%;margin-top:22px;padding:15px;border:0;border-radius:11px;
-  background:var(--raise);color:var(--ink);font-family:inherit;font-size:15px;
-  font-weight:600;cursor:pointer;transition:background .18s,transform .08s}
-.act:hover{background:#30363c}
-.act:active{transform:scale(.985)}
-.act:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.act{width:100%;margin-top:26px;padding:16px;border:1px solid var(--line);
+  border-radius:13px;background:var(--raise);color:var(--ink);font-family:inherit;
+  font-size:15px;font-weight:500;letter-spacing:-.01em;cursor:pointer;
+  transition:background .2s,border-color .2s,transform .09s}
+.act:hover{background:var(--hi);border-color:var(--line2)}
+.act:active{transform:scale(.987)}
+.act:focus-visible{outline:1.5px solid var(--amber);outline-offset:3px}
 
-.row{display:flex;align-items:center;justify-content:space-between;gap:14px;
-  padding:17px 18px;background:var(--panel);border:1px solid var(--edge);
-  border-radius:13px;margin-top:12px}
-.row.col{flex-direction:column;align-items:stretch;gap:13px}
-.lbl{font-size:14px;font-weight:500}
-.hint{margin-top:3px;font-size:12px;color:var(--mute)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:19px 20px;background:var(--surface);border:1px solid var(--line);
+  border-radius:16px;margin-top:12px}
+.row.col{flex-direction:column;align-items:stretch;gap:15px}
+.lbl{font-size:14.5px;font-weight:500;letter-spacing:-.012em}
+.hint{margin-top:4px;font-size:12.5px;color:var(--mute);letter-spacing:-.005em}
 
 .sw{position:relative;width:46px;height:27px;flex:none;border-radius:14px;
-  background:#3a4148;border:0;cursor:pointer;transition:background .22s}
+  background:#26282b;border:0;cursor:pointer;transition:background .24s}
 .sw[aria-checked="true"]{background:var(--amber)}
 .sw::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;
-  border-radius:50%;background:#e8ebed;transition:transform .22s}
+  border-radius:50%;background:#fff;transition:transform .24s cubic-bezier(.4,1.2,.5,1)}
 .sw[aria-checked="true"]::after{transform:translateX(19px)}
-.sw:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.sw:focus-visible{outline:1.5px solid var(--amber);outline-offset:4px}
 
 .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.chip{padding:11px 0;border:1px solid var(--edge);border-radius:9px;background:transparent;
-  color:var(--mute);font-family:var(--mono);font-size:12px;letter-spacing:.04em;
-  cursor:pointer;transition:all .18s}
-.chip:hover{color:var(--ink);border-color:#454c54}
-.chip.sel{background:var(--amber);border-color:var(--amber);color:#1a1204;font-weight:600}
-.chip:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.chip{padding:12px 0;border:1px solid var(--line);border-radius:11px;background:transparent;
+  color:var(--mute);font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;
+  cursor:pointer;transition:color .2s,border-color .2s,background .2s}
+.chip:hover{color:var(--ink);border-color:var(--line2)}
+.chip.sel{background:#fff;border-color:#fff;color:#000;font-weight:500}
+.chip:focus-visible{outline:1.5px solid var(--amber);outline-offset:2px}
 
-.foot{margin-top:20px;text-align:center;font-family:var(--mono);font-size:10px;
-  letter-spacing:.16em;text-transform:uppercase;color:#5c646d}
-.dim{opacity:.42;pointer-events:none;transition:opacity .25s}
+.dim{opacity:.38;pointer-events:none;transition:opacity .28s}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <div class="top">
-    <span class="eyebrow">Room light</span>
+  <div class="head">
+    <h1 class="title">Eben's Room Light</h1>
     <span class="link"><span class="dot" id="dot"></span><span id="linktxt">connecting</span></span>
   </div>
 
   <div class="stage" id="stage">
     <div class="halo"></div>
     <svg class="plate" viewBox="0 0 140 210" aria-hidden="true">
-      <rect class="pl-body" x="21" y="8" width="98" height="194" rx="11"/>
+      <rect class="pl-body" x="21" y="8" width="98" height="194" rx="12"/>
       <path class="pl-screw" d="M70 24v8M66 28h8"/>
       <path class="pl-screw" d="M70 178v8M66 182h8"/>
       <rect class="pl-slot" x="55" y="74" width="30" height="60" rx="7"/>
@@ -162,12 +169,10 @@ svg.plate{width:104px;height:auto;display:block;margin:0 auto 20px;position:rela
     </div>
   </div>
 
-  <div class="foot">ESP32 &middot; servo actuated</div>
 </div>
 
 <script>
 const $=i=>document.getElementById(i);
-let hold=300;
 
 function fmt(s){
   if(s<=0)return "0:00";
@@ -181,7 +186,6 @@ function paint(d){
   $("act").textContent=d.on?"Turn off":"Turn on";
   $("auto").setAttribute("aria-checked",d.auto?"true":"false");
   $("holdrow").classList.toggle("dim",!d.auto);
-  hold=d.hold;
   [...document.querySelectorAll(".chip")].forEach(c=>
     c.classList.toggle("sel",+c.dataset.s===d.hold));
   if(!d.auto) $("sub").textContent="Manual control";
