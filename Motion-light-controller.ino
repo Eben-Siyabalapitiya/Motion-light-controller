@@ -6,7 +6,7 @@ const int PIN_BLUE = 2;
 const int PIN_RED = 4;
 const int ANGLE_DOWN = 65;
 const int ANGLE_UP = 25;
-const unsigned long HOLD_MS = 5000UL;
+const unsigned long HOLD_MS = 300000UL;
 const unsigned long BLINK_MS = 900UL;
 
 Servo servo;
