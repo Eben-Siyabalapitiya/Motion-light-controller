@@ -2,7 +2,7 @@
 
 const int PIN_SERVO = 18;
 const int PIN_PIR = 27;
-const int PIN_GREEN = 5;
+const int PIN_BLUE = 2;
 const int PIN_RED = 4;
 const int ANGLE_DOWN = 65;
 const int ANGLE_UP = 25;
@@ -18,9 +18,9 @@ unsigned long lastBlinkMs = 0;
 void setup() {
   Serial.begin(115200);
   pinMode(PIN_PIR, INPUT_PULLDOWN);
-  pinMode(PIN_GREEN, OUTPUT);
+  pinMode(PIN_BLUE, OUTPUT);
   pinMode(PIN_RED, OUTPUT);
-  digitalWrite(PIN_GREEN, LOW);
+  digitalWrite(PIN_BLUE, LOW);
   digitalWrite(PIN_RED, LOW);
   servo.setPeriodHertz(50);
   servo.attach(PIN_SERVO, 500, 2400);
@@ -36,7 +36,7 @@ void loop() {
     if (!isUp) {
       Serial.println("up");
       digitalWrite(PIN_RED, LOW);
-      digitalWrite(PIN_GREEN, HIGH);
+      digitalWrite(PIN_BLUE, HIGH);
       servo.attach(PIN_SERVO, 500, 2400);
       servo.write(ANGLE_UP);
       isUp = true;
@@ -48,7 +48,7 @@ void loop() {
     servo.write(ANGLE_DOWN);
     delay(500);
     servo.detach();
-    digitalWrite(PIN_GREEN, LOW);
+    digitalWrite(PIN_BLUE, LOW);
     isUp = false;
     lastBlinkMs = millis();
   }
