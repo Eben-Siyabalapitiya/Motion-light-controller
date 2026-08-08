@@ -2,7 +2,7 @@
 
 const int PIN_SERVO = 18;
 const int PIN_PIR = 27;
-const int ANGLE_DOWN = 60;
+const int ANGLE_DOWN = 65;
 const int ANGLE_UP = 10;
 const unsigned long HOLD_MS = 5000UL;
 
