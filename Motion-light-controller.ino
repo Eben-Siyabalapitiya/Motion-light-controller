@@ -2,8 +2,8 @@
 
 const int PIN_SERVO = 18;
 const int PIN_PIR = 27;
-const int ANGLE_DOWN = 60;
-const int ANGLE_UP = 0;
+const int ANGLE_DOWN = 30;
+const int ANGLE_UP = 20;
 const unsigned long HOLD_MS = 5000UL;
 
 Servo servo;
