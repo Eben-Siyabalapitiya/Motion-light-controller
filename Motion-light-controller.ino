@@ -1,224 +1,188 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#000000">
-<title>Eben's Room Light</title>
-<style>
-:root{
-  --bg:#000; --surface:#0b0c0e; --raise:#161719; --hi:#202225;
-  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.15);
-  --ink:#fafafa; --mute:#71767c;
-  --amber:#ffb04a; --glow:rgba(255,176,74,.16);
-  --sans:"Segoe UI Variable Display",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono",Menlo,Consolas,monospace;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  background:var(--bg);color:var(--ink);font-family:var(--sans);
-  min-height:100vh;display:flex;justify-content:center;
-  padding:40px 20px 56px;-webkit-font-smoothing:antialiased;
-  text-rendering:optimizeLegibility;
-}
-.wrap{width:100%;max-width:392px}
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <PubSubClient.h>
+#include <ESP32Servo.h>
 
-.head{margin-bottom:26px}
-.title{font-size:23px;font-weight:600;letter-spacing:-.032em;line-height:1.1}
-.link{display:flex;align-items:center;gap:7px;margin-top:9px;
-  font-family:var(--mono);font-size:10px;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--mute)}
-.dot{width:5px;height:5px;border-radius:50%;background:#33363a;transition:background .3s}
-.dot.live{background:#5ec97a;box-shadow:0 0 8px rgba(94,201,122,.55)}
+const char* WIFI_SSID = "wifi name";
+const char* WIFI_PASS = "wifipass";
 
-.stage{
-  background:var(--surface);border:1px solid var(--line);border-radius:20px;
-  padding:34px 26px 26px;text-align:center;position:relative;overflow:hidden;
-}
-.halo{position:absolute;inset:0;opacity:0;transition:opacity .6s ease;
-  background:radial-gradient(circle at 50% 33%,var(--glow),transparent 60%);
-  pointer-events:none}
-.stage.on .halo{opacity:1}
-.stage::after{content:"";position:absolute;inset:0;border-radius:20px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);pointer-events:none}
+const char* MQTT_HOST = "0b4cfe2f4fae436596c1cb84b32aacd9.s1.eu.hivemq.cloud";
+const int   MQTT_PORT = 8883;
+const char* MQTT_USER = "motionlight";
+const char* MQTT_PASS = "motionlight1523";
 
-svg.plate{width:110px;height:auto;display:block;margin:0 auto 24px;position:relative}
-.pl-body{fill:#101113;stroke:var(--line2);stroke-width:1.4}
-.pl-slot{fill:#000}
-.pl-screw{fill:none;stroke:#3a3d42;stroke-width:1.5;stroke-linecap:round}
-.pl-lever{fill:#8b9096;transform-origin:70px 104px;transform:rotate(180deg);
-  transition:transform .44s cubic-bezier(.34,1.42,.5,1),fill .44s}
-.stage.on .pl-lever{fill:#fff;transform:rotate(0deg)}
-.pl-arm{stroke:#3a3d42;stroke-width:5;stroke-linecap:round;transform-origin:70px 104px;
-  transition:transform .44s cubic-bezier(.34,1.42,.5,1),stroke .44s}
-.stage.on .pl-arm{stroke:var(--amber);transform:rotate(-34deg)}
+const char* T_CMD    = "eben/light/cmd";
+const char* T_STATE  = "eben/light/state";
+const char* T_ONLINE = "eben/light/online";
 
-.state{font-size:30px;font-weight:600;letter-spacing:-.035em;transition:color .4s}
-.stage.on .state{color:var(--amber)}
-.sub{margin-top:9px;font-family:var(--mono);font-size:10px;letter-spacing:.17em;
-  text-transform:uppercase;color:var(--mute);font-variant-numeric:tabular-nums}
+const int PIN_SERVO = 18;
+const int PIN_PIR = 27;
+const int PIN_GREEN = 5;
+const int PIN_RED = 4;
 
-.act{width:100%;margin-top:26px;padding:16px;border:1px solid var(--line);
-  border-radius:13px;background:var(--raise);color:var(--ink);font-family:inherit;
-  font-size:15px;font-weight:500;letter-spacing:-.01em;cursor:pointer;
-  transition:background .2s,border-color .2s,transform .09s}
-.act:hover{background:var(--hi);border-color:var(--line2)}
-.act:active{transform:scale(.987)}
-.act:focus-visible{outline:1.5px solid var(--amber);outline-offset:3px}
+const int ANGLE_DOWN = 65;
+const int ANGLE_UP = 25;
+const unsigned long BLINK_MS = 900UL;
+const unsigned long SUPPRESS_MS = 15000UL;
+const unsigned long RETRY_MS = 5000UL;
+const unsigned long BEAT_MS = 5000UL;
 
-.row{display:flex;align-items:center;justify-content:space-between;gap:16px;
-  padding:19px 20px;background:var(--surface);border:1px solid var(--line);
-  border-radius:16px;margin-top:12px}
-.row.col{flex-direction:column;align-items:stretch;gap:15px}
-.lbl{font-size:14.5px;font-weight:500;letter-spacing:-.012em}
-.hint{margin-top:4px;font-size:12.5px;color:var(--mute);letter-spacing:-.005em}
+WiFiClientSecure net;
+PubSubClient mqtt(net);
+Servo servo;
 
-.sw{position:relative;width:46px;height:27px;flex:none;border-radius:14px;
-  background:#26282b;border:0;cursor:pointer;transition:background .24s}
-.sw[aria-checked="true"]{background:var(--amber)}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;
-  border-radius:50%;background:#fff;transition:transform .24s cubic-bezier(.4,1.2,.5,1)}
-.sw[aria-checked="true"]::after{transform:translateX(19px)}
-.sw:focus-visible{outline:1.5px solid var(--amber);outline-offset:4px}
+bool lightOn = false;
+bool autoMode = true;
+bool blinkState = false;
+unsigned long holdMs = 300000UL;
+unsigned long lastMotionMs = 0;
+unsigned long lastBlinkMs = 0;
+unsigned long suppressUntilMs = 0;
+unsigned long lastRetryMs = 0;
+unsigned long lastBeatMs = 0;
 
-.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.chip{padding:12px 0;border:1px solid var(--line);border-radius:11px;background:transparent;
-  color:var(--mute);font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;
-  cursor:pointer;transition:color .2s,border-color .2s,background .2s}
-.chip:hover{color:var(--ink);border-color:var(--line2)}
-.chip.sel{background:#fff;border-color:#fff;color:#000;font-weight:600}
-.chip:focus-visible{outline:1.5px solid var(--amber);outline-offset:2px}
-
-.dim{opacity:.38;pointer-events:none;transition:opacity .28s}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
-</style>
-</head>
-<body>
-<div class="wrap">
-
-  <div class="head">
-    <h1 class="title">Eben's Room Light</h1>
-    <span class="link"><span class="dot" id="dot"></span><span id="linktxt">connecting</span></span>
-  </div>
-
-  <div class="stage" id="stage">
-    <div class="halo"></div>
-    <svg class="plate" viewBox="0 0 140 210" aria-hidden="true">
-      <rect class="pl-body" x="21" y="8" width="98" height="194" rx="12"/>
-      <path class="pl-screw" d="M70 24v8M66 28h8"/>
-      <path class="pl-screw" d="M70 178v8M66 182h8"/>
-      <rect class="pl-slot" x="55" y="74" width="30" height="60" rx="7"/>
-      <path class="pl-lever" d="M57 104h26l-4-38q-9-6-18 0z"/>
-      <line class="pl-arm" x1="70" y1="104" x2="70" y2="66"/>
-    </svg>
-    <div class="state" id="state">Off</div>
-    <div class="sub" id="sub">&mdash;</div>
-    <button class="act" id="act">Turn on</button>
-  </div>
-
-  <div class="row">
-    <div>
-      <div class="lbl">Motion sensing</div>
-      <div class="hint">Turn the light on when someone walks in</div>
-    </div>
-    <button class="sw" id="auto" role="switch" aria-checked="true" aria-label="Motion sensing"></button>
-  </div>
-
-  <div class="row col" id="holdrow">
-    <div>
-      <div class="lbl">Turn off after</div>
-      <div class="hint">Time with no motion before the light goes off</div>
-    </div>
-    <div class="chips" id="chips">
-      <button class="chip" data-s="60">1 min</button>
-      <button class="chip" data-s="300">5 min</button>
-      <button class="chip" data-s="600">10 min</button>
-      <button class="chip" data-s="1800">30 min</button>
-    </div>
-  </div>
-
-</div>
-
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-<script>
-const HOST = "0b4cfe2f4fae436596c1cb84b32aacd9.s1.eu.hivemq.cloud";
-const PORT = 8884;
-const USER = "YOUR_HIVEMQ_USERNAME";
-const PASS = "YOUR_HIVEMQ_PASSWORD";
-
-const T_CMD = "eben/light/cmd";
-const T_STATE = "eben/light/state";
-const T_ONLINE = "eben/light/online";
-
-const $ = i => document.getElementById(i);
-let s = { on:false, auto:true, hold:300, left:0 };
-let deviceUp = false;
-
-function fmt(x){
-  if(x <= 0) return "0:00";
-  const m = Math.floor(x/60), r = x%60;
-  return m + ":" + String(r).padStart(2,"0");
+void setLight(bool on) {
+  servo.attach(PIN_SERVO, 500, 2400);
+  servo.write(on ? ANGLE_UP : ANGLE_DOWN);
+  delay(600);
+  servo.detach();
+  lightOn = on;
 }
 
-function paint(){
-  $("stage").classList.toggle("on", s.on);
-  $("state").textContent = s.on ? "On" : "Off";
-  $("act").textContent = s.on ? "Turn off" : "Turn on";
-  $("auto").setAttribute("aria-checked", s.auto ? "true" : "false");
-  $("holdrow").classList.toggle("dim", !s.auto);
-  [...document.querySelectorAll(".chip")].forEach(c =>
-    c.classList.toggle("sel", +c.dataset.s === s.hold));
-  if(!deviceUp) $("sub").textContent = "Device offline";
-  else if(!s.auto) $("sub").textContent = "Manual control";
-  else if(s.on) $("sub").textContent = "Off in " + fmt(s.left);
-  else $("sub").textContent = "Waiting for motion";
-}
-
-function setLink(ok, txt){
-  $("dot").classList.toggle("live", ok);
-  $("linktxt").textContent = txt;
-}
-
-const client = mqtt.connect("wss://" + HOST + ":" + PORT + "/mqtt", {
-  username: USER,
-  password: PASS,
-  clientId: "web-" + Math.random().toString(16).slice(2, 10),
-  clean: true,
-  reconnectPeriod: 3000
-});
-
-client.on("connect", () => {
-  client.subscribe([T_STATE, T_ONLINE]);
-  setLink(true, "connected");
-});
-
-client.on("reconnect", () => setLink(false, "reconnecting"));
-client.on("close", () => setLink(false, "no link"));
-client.on("error", e => { console.error(e); setLink(false, "error"); });
-
-client.on("message", (topic, buf) => {
-  const msg = buf.toString();
-  if(topic === T_ONLINE){
-    deviceUp = msg === "1";
-    setLink(deviceUp, deviceUp ? "connected" : "device offline");
-  } else if(topic === T_STATE){
-    try { s = JSON.parse(msg); } catch(e) { return; }
+void publishState() {
+  unsigned long left = 0;
+  if (autoMode && lightOn) {
+    unsigned long gone = millis() - lastMotionMs;
+    if (gone < holdMs) left = (holdMs - gone) / 1000UL;
   }
-  paint();
-});
+  String j = "{\"on\":";
+  j += lightOn ? "true" : "false";
+  j += ",\"auto\":";
+  j += autoMode ? "true" : "false";
+  j += ",\"hold\":";
+  j += String(holdMs / 1000UL);
+  j += ",\"left\":";
+  j += String(left);
+  j += "}";
+  mqtt.publish(T_STATE, j.c_str(), true);
+}
 
-function send(m){ client.publish(T_CMD, m); }
+void onMessage(char* topic, byte* payload, unsigned int len) {
+  char buf[64];
+  if (len > 63) len = 63;
+  memcpy(buf, payload, len);
+  buf[len] = '\0';
+  String m = String(buf);
+  Serial.print("cmd: ");
+  Serial.println(m);
 
-$("act").onclick = () => send("flip");
-$("auto").onclick = () => send("auto:" + (s.auto ? 0 : 1));
-document.querySelectorAll(".chip").forEach(c =>
-  c.onclick = () => send("hold:" + c.dataset.s));
+  if (m == "flip" || m == "on" || m == "off") {
+    bool target = (m == "flip") ? !lightOn : (m == "on");
+    if (target != lightOn) setLight(target);
+    lastMotionMs = millis();
+    if (!lightOn) suppressUntilMs = millis() + SUPPRESS_MS;
+  } else if (m.startsWith("auto:")) {
+    autoMode = m.substring(5).toInt() == 1;
+    lastMotionMs = millis();
+  } else if (m.startsWith("hold:")) {
+    long s = m.substring(5).toInt();
+    if (s < 10) s = 10;
+    if (s > 7200) s = 7200;
+    holdMs = (unsigned long)s * 1000UL;
+  }
+  publishState();
+}
 
-setInterval(() => {
-  if(s.on && s.auto && s.left > 0){ s.left--; paint(); }
-}, 1000);
+void mqttConnect() {
+  String cid = "esp32light-" + WiFi.macAddress();
+  Serial.print("mqtt connecting... ");
+  if (mqtt.connect(cid.c_str(), MQTT_USER, MQTT_PASS, T_ONLINE, 1, true, "0")) {
+    Serial.println("ok");
+    mqtt.publish(T_ONLINE, "1", true);
+    mqtt.subscribe(T_CMD);
+    publishState();
+  } else {
+    Serial.print("failed rc=");
+    Serial.println(mqtt.state());
+  }
+}
 
-paint();
-</script>
-</body>
-</html>
+void setup() {
+  Serial.begin(115200);
+  pinMode(PIN_PIR, INPUT_PULLDOWN);
+  pinMode(PIN_GREEN, OUTPUT);
+  pinMode(PIN_RED, OUTPUT);
+  digitalWrite(PIN_GREEN, LOW);
+  digitalWrite(PIN_RED, LOW);
+
+  servo.setPeriodHertz(50);
+  servo.attach(PIN_SERVO, 500, 2400);
+  servo.write(ANGLE_DOWN);
+  delay(600);
+  servo.detach();
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.print("wifi");
+  unsigned long t0 = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 20000UL) {
+    delay(400);
+    Serial.print(".");
+  }
+  Serial.println(WiFi.status() == WL_CONNECTED ? " ok" : " offline");
+
+  net.setInsecure();
+  mqtt.setServer(MQTT_HOST, MQTT_PORT);
+  mqtt.setCallback(onMessage);
+  mqtt.setBufferSize(512);
+  mqtt.setKeepAlive(30);
+
+  lastMotionMs = millis();
+}
+
+void loop() {
+  if (WiFi.status() == WL_CONNECTED) {
+    if (!mqtt.connected()) {
+      if (millis() - lastRetryMs > RETRY_MS) {
+        lastRetryMs = millis();
+        mqttConnect();
+      }
+    } else {
+      mqtt.loop();
+    }
+  }
+
+  bool motion = digitalRead(PIN_PIR) == HIGH;
+
+  if (autoMode && motion && millis() > suppressUntilMs) {
+    lastMotionMs = millis();
+    if (!lightOn) {
+      setLight(true);
+      publishState();
+    }
+  }
+
+  if (autoMode && lightOn && millis() - lastMotionMs > holdMs) {
+    setLight(false);
+    publishState();
+  }
+
+  if (lightOn && millis() - lastBeatMs > BEAT_MS) {
+    lastBeatMs = millis();
+    publishState();
+  }
+
+  if (lightOn) {
+    digitalWrite(PIN_GREEN, HIGH);
+    digitalWrite(PIN_RED, LOW);
+  } else {
+    digitalWrite(PIN_GREEN, LOW);
+    if (millis() - lastBlinkMs > BLINK_MS) {
+      lastBlinkMs = millis();
+      blinkState = !blinkState;
+      digitalWrite(PIN_RED, blinkState);
+    }
+  }
+
+  delay(10);
+}
