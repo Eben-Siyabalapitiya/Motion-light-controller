@@ -31,27 +31,58 @@ body{
 .dot{width:5px;height:5px;border-radius:50%;background:#33363a;transition:background .3s}
 .dot.live{background:#5ec97a;box-shadow:0 0 8px rgba(94,201,122,.55)}
 
-.navlink{display:flex;align-items:center;justify-content:center;padding:9px 14px;
+.navlink{display:flex;align-items:center;justify-content:center;gap:4px;padding:9px 14px;
   border:1px solid var(--line);border-radius:10px;color:var(--mute);
   font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
   text-decoration:none;transition:color .2s,border-color .2s;flex:none;margin-top:1px}
 .navlink:hover{color:var(--ink);border-color:var(--line2)}
 
-.daygroup{margin-top:22px}
-.daygroup:first-child{margin-top:0}
-.daylabel{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--mute);margin-bottom:10px;padding-left:2px}
-.logrow{display:flex;align-items:center;justify-content:space-between;
-  padding:15px 18px;background:var(--surface);border:1px solid var(--line);
-  border-radius:14px;margin-top:8px}
-.logrow:first-of-type{margin-top:0}
-.logtime{font-size:14.5px;font-weight:500;letter-spacing:-.01em}
-.logdot{width:6px;height:6px;border-radius:50%;background:var(--amber);flex:none}
-.empty{padding:44px 20px;text-align:center;color:var(--mute);font-size:13.5px;
-  background:var(--surface);border:1px solid var(--line);border-radius:16px;
-  font-family:var(--mono);letter-spacing:.02em}
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:20px;
+  padding:30px 24px 26px;text-align:center;position:relative;overflow:hidden;
+}
+.card::before{content:"";position:absolute;inset:0;opacity:.7;
+  background:radial-gradient(circle at 50% 0%,var(--glow),transparent 62%);
+  pointer-events:none}
+.card::after{content:"";position:absolute;inset:0;border-radius:20px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);pointer-events:none}
+.count{position:relative;font-size:46px;font-weight:600;letter-spacing:-.04em;line-height:1;
+  color:var(--mute);font-variant-numeric:tabular-nums;transition:color .35s}
+.count.active{color:var(--amber)}
+.count-label{position:relative;margin-top:9px;font-family:var(--mono);font-size:10px;
+  letter-spacing:.17em;text-transform:uppercase;color:var(--mute)}
+.lastseen{position:relative;margin-top:16px;padding-top:15px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--mute);letter-spacing:-.005em}
+.lastseen b{color:var(--ink);font-weight:500}
 
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.daygroup{margin-top:24px}
+.daygroup:first-child{margin-top:22px}
+.dayhead{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;padding-left:2px}
+.daylabel{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--mute)}
+.daycount{font-family:var(--mono);font-size:10px;letter-spacing:.03em;color:var(--mute);
+  background:var(--raise);border:1px solid var(--line);padding:3px 9px;border-radius:20px}
+
+.logrow{display:flex;align-items:center;gap:13px;
+  padding:14px 16px;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;margin-top:8px;
+  animation:fadeUp .38s cubic-bezier(.2,.8,.3,1) both}
+.logrow:first-of-type{margin-top:0}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--amber);
+  box-shadow:0 0 9px rgba(255,176,74,.55);flex:none}
+.logbody{flex:1;min-width:0}
+.logtime{font-size:14.5px;font-weight:500;letter-spacing:-.01em}
+.logago{margin-top:2px;font-family:var(--mono);font-size:10.5px;
+  color:var(--mute);letter-spacing:.03em}
+
+.empty{margin-top:22px;padding:46px 20px 40px;text-align:center;
+  background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.empty svg{display:block;margin:0 auto 16px}
+.empty p{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--mute)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
@@ -63,12 +94,25 @@ body{
         <h1 class="title">Motion Log</h1>
         <span class="link"><span class="dot" id="dot"></span><span id="linktxt">connecting</span></span>
       </div>
-      <a href="index.html" class="navlink">Light</a>
+      <a href="index.html" class="navlink">‹ Light</a>
     </div>
   </div>
 
+  <div class="card">
+    <div class="count" id="count">&ndash;</div>
+    <div class="count-label">Detections in last 48h</div>
+    <div class="lastseen" id="lastseen">Loading&hellip;</div>
+  </div>
+
   <div id="content">
-    <div class="empty">No motion logged yet</div>
+    <div class="empty">
+      <svg width="48" height="34" viewBox="0 0 48 34" fill="none">
+        <circle cx="24" cy="30" r="3" fill="var(--mute)"/>
+        <path d="M14 30a10 10 0 0 1 20 0" stroke="var(--line2)" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8 30a16 16 0 0 1 32 0" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <p>Loading log&hellip;</p>
+    </div>
   </div>
 
 </div>
@@ -84,6 +128,7 @@ const T_LOG = "eben/light/log";
 const T_ONLINE = "eben/light/online";
 
 const $ = i => document.getElementById(i);
+let lastList = null;
 
 function setLink(ok, txt){
   $("dot").classList.toggle("live", ok);
@@ -104,10 +149,45 @@ function timeLabel(ts){
   return new Date(ts * 1000).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
+function timeAgo(ts){
+  const diff = Math.floor(Date.now() / 1000) - ts;
+  if (diff < 45) return "just now";
+  if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+  if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+  return Math.floor(diff / 86400) + "d ago";
+}
+
+function emptyCard(text){
+  return `
+    <div class="empty">
+      <svg width="48" height="34" viewBox="0 0 48 34" fill="none">
+        <circle cx="24" cy="30" r="3" fill="var(--mute)"/>
+        <path d="M14 30a10 10 0 0 1 20 0" stroke="var(--line2)" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8 30a16 16 0 0 1 32 0" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <p>${text}</p>
+    </div>`;
+}
+
+function renderSummary(list){
+  const count = $("count");
+  const lastseen = $("lastseen");
+  count.textContent = list.length;
+  count.classList.toggle("active", list.length > 0);
+  if (!list.length) {
+    lastseen.innerHTML = "No motion logged yet";
+  } else {
+    const latest = Math.max(...list);
+    lastseen.innerHTML = "Last seen <b>" + timeAgo(latest) + "</b>";
+  }
+}
+
 function render(list){
+  lastList = list;
+  renderSummary(list);
   const content = $("content");
   if (!list.length) {
-    content.innerHTML = '<div class="empty">No motion logged yet</div>';
+    content.innerHTML = emptyCard("No motion logged yet");
     return;
   }
   const sorted = [...list].sort((a, b) => b - a);
@@ -123,11 +203,17 @@ function render(list){
   }
   content.innerHTML = groups.map(g => `
     <div class="daygroup">
-      <div class="daylabel">${g.label}</div>
-      ${g.items.map(ts => `
-        <div class="logrow">
-          <span class="logtime">Motion detected at ${timeLabel(ts)}</span>
-          <span class="logdot"></span>
+      <div class="dayhead">
+        <span class="daylabel">${g.label}</span>
+        <span class="daycount">${g.items.length}</span>
+      </div>
+      ${g.items.map((ts, i) => `
+        <div class="logrow" style="animation-delay:${Math.min(i, 8) * 35}ms">
+          <span class="pulse"></span>
+          <span class="logbody">
+            <div class="logtime">${timeLabel(ts)}</div>
+            <div class="logago">${timeAgo(ts)}</div>
+          </span>
         </div>
       `).join("")}
     </div>
@@ -162,6 +248,8 @@ client.on("message", (topic, buf) => {
     } catch (e) {}
   }
 });
+
+setInterval(() => { if (lastList) render(lastList); }, 30000);
 </script>
 </body>
 </html>
