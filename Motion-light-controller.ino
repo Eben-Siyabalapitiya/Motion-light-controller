@@ -5,7 +5,7 @@
 #include <time.h>
 
 const char* WIFI_SSID = "wifi name";
-const char* WIFI_PASS = "531D1374E947";
+const char* WIFI_PASS = "wifi pass";
 
 const char* MQTT_HOST = "0b4cfe2f4fae436596c1cb84b32aacd9.s1.eu.hivemq.cloud";
 const int   MQTT_PORT = 8883;
