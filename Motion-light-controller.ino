@@ -4,7 +4,7 @@
 #include <ESP32Servo.h>
 #include <time.h>
 
-const char* WIFI_SSID = "BELL991";
+const char* WIFI_SSID = "wifi name";
 const char* WIFI_PASS = "531D1374E947";
 
 const char* MQTT_HOST = "0b4cfe2f4fae436596c1cb84b32aacd9.s1.eu.hivemq.cloud";
