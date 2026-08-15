@@ -35,7 +35,6 @@ Putting a servo on top of the faceplate avoids both problems. The build never co
 | Green LED (via 220Ω) | GPIO 5 |
 | Red LED (via 220Ω) | GPIO 4 |
 
-A 470 to 1000µF capacitor across the servo's power pins, soldered close to the servo, is worth adding. A servo pulls close to an amp the instant it starts moving, and that dip can brown out the board. Sweeping the servo in small increments rather than jumping to the target angle helps with the same problem.
 
 ## How it works
 
