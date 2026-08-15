@@ -4,8 +4,8 @@
 #include <ESP32Servo.h>
 #include <time.h>
 
-const char* WIFI_SSID = "wifi name";
-const char* WIFI_PASS = "wifi pass";
+const char* WIFI_SSID = "BELL991";
+const char* WIFI_PASS = "531D1374E947";
 
 const char* MQTT_HOST = "0b4cfe2f4fae436596c1cb84b32aacd9.s1.eu.hivemq.cloud";
 const int   MQTT_PORT = 8883;
@@ -29,10 +29,10 @@ const unsigned long SUPPRESS_MS = 15000UL;
 const unsigned long RETRY_MS = 5000UL;
 const unsigned long BEAT_MS = 5000UL;
 
-const unsigned long LOG_COOLDOWN_MS = 900000UL;  
-const time_t LOG_WINDOW_S = 172800;               
-const int LOG_MAX = 300;                           
-const char* TZ_STRING = "EST5EDT,M3.2.0,M11.1.0";  
+const unsigned long LOG_COOLDOWN_MS = 900000UL;    // 15 min between log entries
+const time_t LOG_WINDOW_S = 172800;                // 48h rolling window
+const int LOG_MAX = 300;                           // safety cap
+const char* TZ_STRING = "EST5EDT,M3.2.0,M11.1.0";  // Eastern, auto DST
 
 WiFiClientSecure net;
 PubSubClient mqtt(net);
@@ -53,6 +53,10 @@ int logCount = 0;
 unsigned long lastLogMs = 0;
 unsigned long lastPruneMs = 0;
 bool timeSynced = false;
+
+bool schedInited = false;
+int schedOffDay = -1;
+int schedOnDay = -1;
 
 void setLight(bool on) {
   servo.attach(PIN_SERVO, 500, 2400);
@@ -126,7 +130,7 @@ void onMessage(char* topic, byte* payload, unsigned int len) {
     lastMotionMs = millis();
   } else if (m.startsWith("hold:")) {
     long s = m.substring(5).toInt();
-    if (s < 10) s = 10;
+    if (s < 3) s = 3;
     if (s > 7200) s = 7200;
     holdMs = (unsigned long)s * 1000UL;
   }
@@ -197,6 +201,28 @@ void loop() {
 
   if (!timeSynced && time(nullptr) > 1700000000) {
     timeSynced = true;
+  }
+
+  if (timeSynced) {
+    time_t now = time(nullptr);
+    struct tm lt;
+    localtime_r(&now, &lt);
+    bool inDayWindow = (lt.tm_hour >= 9 && lt.tm_hour < 18);
+
+    if (!schedInited) {
+      if (inDayWindow && autoMode) { autoMode = false; publishState(); }
+      if (!inDayWindow && !autoMode) { autoMode = true; publishState(); }
+      schedInited = true;
+    }
+
+    if (lt.tm_hour == 9 && lt.tm_min == 0 && schedOffDay != lt.tm_yday) {
+      if (autoMode) { autoMode = false; publishState(); }
+      schedOffDay = lt.tm_yday;
+    }
+    if (lt.tm_hour == 18 && lt.tm_min == 0 && schedOnDay != lt.tm_yday) {
+      if (!autoMode) { autoMode = true; publishState(); }
+      schedOnDay = lt.tm_yday;
+    }
   }
 
   bool motion = digitalRead(PIN_PIR) == HIGH;
